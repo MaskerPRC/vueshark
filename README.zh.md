@@ -1,10 +1,11 @@
 # VueShark
 
 [![GitHub stars](https://img.shields.io/github/stars/MaskerPRC/vueshark?style=social)](https://github.com/MaskerPRC/vueshark/stargazers)
-![img.png](img.png)
-![img_1.png](img_1.png)
 VueShark 是一个基于 Electron 与 Vue 的网络数据包分析工具，目标是逐步向 Wireshark 看齐，并在简化开发者体验的同时，提供友好的 UI 以及自动化的抓包配置流程。通过它，你可以在桌面端快速搭建抓包环境、可视化查看网络数据包内容、执行流量中断与转发、并尝试实现 HTTPS 的中间人代理解析。VueShark 致力于打造一个跨平台、自动化、易拓展、界面现代的抓包分析工具。
 
+## 案例
+![img.png](img.png)
+![img_1.png](img_1.png)
 ## 产品特色
 
 - **跨平台支持**：计划支持主流操作系统（Windows, macOS, Linux），方便在不同环境下使用。
