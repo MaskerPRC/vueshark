@@ -1,6 +1,8 @@
 # VueShark
 
 [![GitHub stars](https://img.shields.io/github/stars/MaskerPRC/vueshark?style=social)](https://github.com/MaskerPRC/vueshark/stargazers)
+![img.png](img.png)
+![img_1.png](img_1.png)
 
 *English Version | [中文版](README.zh.md)*
 
