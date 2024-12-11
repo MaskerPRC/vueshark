@@ -1,0 +1,26 @@
+{
+  "mac": {
+    "icon": "../public/logo.ico"
+  },
+  "win": {
+    "icon": "../public/logo.ico"
+  },
+  "linux": {
+    "icon": "../public/logo.ico"
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": true,
+    "allowElevation": true,
+    "allowToChangeInstallationDirectory": true,
+    "installerIcon": "../public/logo.ico",
+    "uninstallerIcon": "../public/logo.ico",
+    "installerHeaderIcon": "../public/logo.ico",
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  },
+  "files": [
+    "**/*",
+    "!**/*.map"
+  ]
+}
