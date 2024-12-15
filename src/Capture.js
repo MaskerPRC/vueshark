@@ -2,9 +2,11 @@ const Cap = require('cap').Cap;
 const decoders = require('cap').decoders;
 const PROTOCOL = decoders.PROTOCOL;
 const HTTPParser = require('http-parser-js').HTTPParser;
+const dnsPacket = require('dns-packet');
 
 const DHCP_SERVER_PORT = 67;
 const DHCP_CLIENT_PORT = 68;
+const DNS_PORT = 53;
 
 const DHCP_MESSAGE_TYPES = {
     1: 'DISCOVER',
@@ -141,44 +143,86 @@ class Capture {
                     const udp = decoders.UDP(this.buffer, ret.offset);
                     protocol = 'UDP';
 
-                    const isDHCP = (udp.info.srcport === DHCP_SERVER_PORT && udp.info.dstport === DHCP_CLIENT_PORT) ||
-                                  (udp.info.srcport === DHCP_CLIENT_PORT && udp.info.dstport === DHCP_SERVER_PORT);
+                    const isDNS = udp.info.srcport === DNS_PORT || udp.info.dstport === DNS_PORT;
 
-                    if (isDHCP) {
+                    if (isDNS) {
                         try {
                             const payload = this.buffer.slice(udp.offset, nbytes);
                             /**
                              * {
-                             *   "operation": "REQUEST",
-                             *   "transactionId": "0x6889d9e2",
-                             *   "clientMac": "58:11:22:b9:09:b6",
-                             *   "assignedIp": "0.0.0.0",
-                             *   "messageType": "RELEASE"
+                             *   "id": 11281,
+                             *   "type": "RESPONSE",
+                             *   "questions": [
+                             *     {
+                             *       "name": "s.f.360.cn",
+                             *       "type": "A"
+                             *     }
+                             *   ],
+                             *   "answers": [
+                             *     {
+                             *       "name": "s.f.360.cn",
+                             *       "type": "A",
+                             *       "ttl": 1,
+                             *       "data": "198.18.52.93"
+                             *     }
+                             *   ]
                              * }
                              */
-                            const dhcpInfo = this._parseDHCP(payload);
-                            if (dhcpInfo) {
+                            const dnsInfo = this._parseDNS(payload);
+                            if (dnsInfo) {
                                 const result = {
                                     index: this.captureCount,
                                     time: Date.now(),
                                     source: src + ':' + udp.info.srcport,
                                     target: dst + ':' + udp.info.dstport,
-                                    protocol: 'DHCP',
-                                    dhcp: dhcpInfo
+                                    protocol: 'DNS',
+                                    dns: dnsInfo
                                 };
                                 callback(result);
                             }
                         } catch (err) {
-                            console.error('DHCP decode error:', err);
+                            console.error('DNS decode error:', err);
                         }
                     } else {
-                        const result = {
-                            index: this.captureCount,
-                            time: Date.now(),
-                            source: src + ':' + udp.info.srcport,
-                            target: dst + ':' + udp.info.dstport,
-                            protocol
-                        };
+                        const isDHCP = (udp.info.srcport === DHCP_SERVER_PORT && udp.info.dstport === DHCP_CLIENT_PORT) ||
+                                      (udp.info.srcport === DHCP_CLIENT_PORT && udp.info.dstport === DHCP_SERVER_PORT);
+
+                        if (isDHCP) {
+                            try {
+                                const payload = this.buffer.slice(udp.offset, nbytes);
+                                /**
+                                 * {
+                                 *   "operation": "REQUEST",
+                                 *   "transactionId": "0x6889d9e2",
+                                 *   "clientMac": "58:11:22:b9:09:b6",
+                                 *   "assignedIp": "0.0.0.0",
+                                 *   "messageType": "RELEASE"
+                                 * }
+                                 */
+                                const dhcpInfo = this._parseDHCP(payload);
+                                if (dhcpInfo) {
+                                    const result = {
+                                        index: this.captureCount,
+                                        time: Date.now(),
+                                        source: src + ':' + udp.info.srcport,
+                                        target: dst + ':' + udp.info.dstport,
+                                        protocol: 'DHCP',
+                                        dhcp: dhcpInfo
+                                    };
+                                    callback(result);
+                                }
+                            } catch (err) {
+                                console.error('DHCP decode error:', err);
+                            }
+                        } else {
+                            const result = {
+                                index: this.captureCount,
+                                time: Date.now(),
+                                source: src + ':' + udp.info.srcport,
+                                target: dst + ':' + udp.info.dstport,
+                                protocol
+                            };
+                        }
                     }
                 } else {
                     // 不支持的协议可不返回
@@ -268,6 +312,29 @@ class Capture {
             assignedIp: yiaddr,
             messageType: options.messageType
         };
+    }
+
+    _parseDNS(buffer) {
+        try {
+            const packet = dnsPacket.decode(buffer);
+            return {
+                id: packet.id,
+                type: packet.type.toUpperCase(), // 'query' 或 'response'
+                questions: packet.questions.map(q => ({
+                    name: q.name,
+                    type: q.type
+                })),
+                answers: packet.answers.map(a => ({
+                    name: a.name,
+                    type: a.type,
+                    ttl: a.ttl,
+                    data: a.data
+                }))
+            };
+        } catch (err) {
+            console.error('DNS packet decode error:', err);
+            return null;
+        }
     }
 }
 
