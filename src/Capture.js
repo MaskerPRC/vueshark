@@ -107,9 +107,6 @@ class Capture {
                         protocol: httpInfo ? 'HTTP' : 'TCP',
                         http: httpInfo
                     };
-                    if (result.protocol === "HTTP") {
-                        callback(result);
-                    }
                 } else if (ret.info.protocol === PROTOCOL.IP.UDP) {
                     const udp = decoders.UDP(this.buffer, ret.offset);
                     protocol = 'UDP';
@@ -122,6 +119,36 @@ class Capture {
                     };
                 } else {
                     // 不支持的协议可不返回
+                }
+            } else if (ret.info.type === PROTOCOL.ETHERNET.ARP) {
+                try {
+                    /**
+                     * {
+                     *   "hardwareaddr": 1,
+                     *   "protocol": 2048,
+                     *   "hdrlen": 6,
+                     *   "protlen": 4,
+                     *   "opcode": 1,
+                     *   "sendermac": "24:31:54:0c:c5:4f",
+                     *   "senderip": "192.168.3.1",
+                     *   "targetmac": "00:00:00:00:00:00",
+                     *   "targetip": "192.168.3.3"
+                     * }
+                     */
+                    const arp = decoders.ARP(this.buffer, ret.offset);
+                    const result = {
+                        index: this.captureCount,
+                        time: Date.now(),
+                        protocol: 'ARP',
+                        source: toIpAddr(arp.info.senderip),
+                        target: toIpAddr(arp.info.targetip),
+                        operation: arp.info.opcode === 1 ? 'REQUEST' : 'REPLY',
+                        senderMac: arp.info.sendermac,
+                        targetMac: arp.info.targetmac
+                    };
+                    callback(result);
+                } catch (err) {
+                    console.error('ARP decode error:', err);
                 }
             }
         });
