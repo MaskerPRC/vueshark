@@ -97,13 +97,9 @@ class Capture {
         this.capInstance.on('packet', (nbytes, trunc) => {
             this.captureCount++;
             let ret;
-            try {
-                ret = decoders.Ethernet(this.buffer);
-            } catch (err) {
-                return; // 无法decode则跳过
-            }
+            let ethernet = decoders.Ethernet(this.buffer);
 
-            if (ret.info.type === PROTOCOL.ETHERNET.IPV4) {
+            if (ethernet.info.type === PROTOCOL.ETHERNET.IPV4) {
                 /**
                  * {
                  *   "hdrlen": 5,
@@ -120,7 +116,7 @@ class Capture {
                  *   "dstaddr": "239.255.255.250"
                  * }
                  */
-                ret = decoders.IPV4(this.buffer, ret.offset);
+                ret = decoders.IPV4(this.buffer, ethernet.offset);
                 const src = ret.info.srcaddr;
                 const dst = ret.info.dstaddr;
                 let protocol = 'Unknown';
@@ -242,7 +238,7 @@ class Capture {
                      *   "targetip": "192.168.3.3"
                      * }
                      */
-                    const arp = decoders.ARP(this.buffer, ret.offset);
+                    const arp = decoders.ARP(this.buffer, ethernet.offset);
                     const result = {
                         index: this.captureCount,
                         time: Date.now(),
