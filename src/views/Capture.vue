@@ -9,24 +9,37 @@
       </div>
     </div>
     <div style="flex-grow:1; overflow:auto;">
-      <table border="1" cellspacing="0" cellpadding="5" style="width:100%; border-collapse: collapse;">
-        <thead>
-        <tr>
-          <th style="width:150px;">时间</th>
-          <th>来源</th>
-          <th>目标</th>
-          <th>协议</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr v-for="item in captureResult" :key="item.index">
-          <td>{{ formatTime(item.time) }}</td>
-          <td>{{ item.source }}</td>
-          <td>{{ item.target }}</td>
-          <td>{{ item.protocol }}</td>
-        </tr>
-        </tbody>
-      </table>
+      <div class="packet-list">
+        <div v-for="packet in captureResult" :key="packet.index" class="packet-item">
+          <div class="packet-header">
+            <span>#{{ packet.index }}</span>
+            <span>{{ new Date(packet.time).toLocaleTimeString() }}</span>
+            <span>{{ packet.protocol }}</span>
+          </div>
+          <div class="packet-details">
+            <div>源地址: {{ packet.source }}</div>
+            <div>目标地址: {{ packet.target }}</div>
+
+            <!-- HTTP信息展示 -->
+            <div v-if="packet.http" class="http-details">
+              <div class="http-type">{{ packet.http.type === 'request' ? 'HTTP请求' : 'HTTP响应' }}</div>
+              <template v-if="packet.http.type === 'request'">
+                <div>方法: {{ packet.http.method }}</div>
+                <div>URL: {{ packet.http.url }}</div>
+              </template>
+              <template v-else>
+                <div>状态码: {{ packet.http.statusCode }}</div>
+              </template>
+              <div class="headers">
+                <div>Headers:</div>
+                <div v-for="(value, key) in packet.http.headers" :key="key" class="header-item">
+                  {{ key }}: {{ value }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>

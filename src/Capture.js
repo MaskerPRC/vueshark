@@ -1,6 +1,7 @@
 const Cap = require('cap').Cap;
 const decoders = require('cap').decoders;
 const PROTOCOL = decoders.PROTOCOL;
+const HTTPParser = require('http-parser-js').HTTPParser;
 
 function toIpAddr(addr) {
     if (!addr) return '';
@@ -35,7 +36,45 @@ class Capture {
 
         this.capInstance = c;
     }
+    _parseHTTP(buffer) {
+        try {
+            const data = buffer.toString('utf8');
+            if (!data.match(/^(GET|POST|PUT|DELETE|HEAD|OPTIONS|CONNECT|TRACE|PATCH)/i) &&
+                !data.match(/^HTTP\/\d\.\d/i)) {
+                return null;
+            }
 
+            const parser = new HTTPParser(HTTPParser.REQUEST);
+            let method, url, headers = {};
+            let isResponse = false;
+
+            parser.onHeadersComplete = function(info) {
+                method = info.method;
+                url = info.url;
+                headers = info.headers;
+                isResponse = info.statusCode != null;
+            };
+
+            parser.execute(buffer);
+
+            if (isResponse) {
+                return {
+                    type: 'response',
+                    statusCode: parser.info.statusCode,
+                    headers: headers
+                };
+            } else {
+                return {
+                    type: 'request',
+                    method: HTTPParser.methods[method],
+                    url: url,
+                    headers: headers
+                };
+            }
+        } catch (e) {
+            return null;
+        }
+    }
     onPacket(callback) {
         if (!this.capInstance) return;
 
@@ -57,14 +96,20 @@ class Capture {
                 if (ret.info.protocol === PROTOCOL.IP.TCP) {
                     const tcp = decoders.TCP(this.buffer, ret.offset);
                     protocol = 'TCP';
+
+                    const payload = this.buffer.slice(tcp.offset, nbytes);
+                    const httpInfo = this._parseHTTP(payload);
                     const result = {
                         index: this.captureCount,
                         time: Date.now(),
                         source: src + ':' + tcp.info.srcport,
                         target: dst + ':' + tcp.info.dstport,
-                        protocol
+                        protocol: httpInfo ? 'HTTP' : 'TCP',
+                        http: httpInfo
                     };
-                    callback(result);
+                    if (result.protocol === "HTTP") {
+                        callback(result);
+                    }
                 } else if (ret.info.protocol === PROTOCOL.IP.UDP) {
                     const udp = decoders.UDP(this.buffer, ret.offset);
                     protocol = 'UDP';
@@ -75,7 +120,6 @@ class Capture {
                         target: dst + ':' + udp.info.dstport,
                         protocol
                     };
-                    callback(result);
                 } else {
                     // 不支持的协议可不返回
                 }
