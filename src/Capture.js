@@ -3,6 +3,20 @@ const decoders = require('cap').decoders;
 const PROTOCOL = decoders.PROTOCOL;
 const HTTPParser = require('http-parser-js').HTTPParser;
 
+const DHCP_SERVER_PORT = 67;
+const DHCP_CLIENT_PORT = 68;
+
+const DHCP_MESSAGE_TYPES = {
+    1: 'DISCOVER',
+    2: 'OFFER',
+    3: 'REQUEST',
+    4: 'DECLINE',
+    5: 'ACK',
+    6: 'NAK',
+    7: 'RELEASE',
+    8: 'INFORM'
+};
+
 function toIpAddr(addr) {
     if (!addr) return '';
     return addr; // cap的decoder会直接给出字符串形式的IP地址
@@ -88,6 +102,22 @@ class Capture {
             }
 
             if (ret.info.type === PROTOCOL.ETHERNET.IPV4) {
+                /**
+                 * {
+                 *   "hdrlen": 5,
+                 *   "dscp": 0,
+                 *   "ecn": 0,
+                 *   "totallen": 194,
+                 *   "id": 50963,
+                 *   "flags": 0,
+                 *   "fragoffset": 0,
+                 *   "ttl": 1,
+                 *   "protocol": 17,
+                 *   "hdrchecksum": 0,
+                 *   "srcaddr": "172.27.128.1",
+                 *   "dstaddr": "239.255.255.250"
+                 * }
+                 */
                 ret = decoders.IPV4(this.buffer, ret.offset);
                 const src = ret.info.srcaddr;
                 const dst = ret.info.dstaddr;
@@ -110,13 +140,46 @@ class Capture {
                 } else if (ret.info.protocol === PROTOCOL.IP.UDP) {
                     const udp = decoders.UDP(this.buffer, ret.offset);
                     protocol = 'UDP';
-                    const result = {
-                        index: this.captureCount,
-                        time: Date.now(),
-                        source: src + ':' + udp.info.srcport,
-                        target: dst + ':' + udp.info.dstport,
-                        protocol
-                    };
+
+                    const isDHCP = (udp.info.srcport === DHCP_SERVER_PORT && udp.info.dstport === DHCP_CLIENT_PORT) ||
+                                  (udp.info.srcport === DHCP_CLIENT_PORT && udp.info.dstport === DHCP_SERVER_PORT);
+
+                    if (isDHCP) {
+                        try {
+                            const payload = this.buffer.slice(udp.offset, nbytes);
+                            /**
+                             * {
+                             *   "operation": "REQUEST",
+                             *   "transactionId": "0x6889d9e2",
+                             *   "clientMac": "58:11:22:b9:09:b6",
+                             *   "assignedIp": "0.0.0.0",
+                             *   "messageType": "RELEASE"
+                             * }
+                             */
+                            const dhcpInfo = this._parseDHCP(payload);
+                            if (dhcpInfo) {
+                                const result = {
+                                    index: this.captureCount,
+                                    time: Date.now(),
+                                    source: src + ':' + udp.info.srcport,
+                                    target: dst + ':' + udp.info.dstport,
+                                    protocol: 'DHCP',
+                                    dhcp: dhcpInfo
+                                };
+                                callback(result);
+                            }
+                        } catch (err) {
+                            console.error('DHCP decode error:', err);
+                        }
+                    } else {
+                        const result = {
+                            index: this.captureCount,
+                            time: Date.now(),
+                            source: src + ':' + udp.info.srcport,
+                            target: dst + ':' + udp.info.dstport,
+                            protocol
+                        };
+                    }
                 } else {
                     // 不支持的协议可不返回
                 }
@@ -160,6 +223,51 @@ class Capture {
         const ifaceList = networkInterfaces[deviceName] || [];
         const ipv4 = ifaceList.find(i => i.family === 'IPv4');
         return ipv4 ? ipv4.address : deviceName;
+    }
+
+    _parseDHCP(buffer) {
+        if (buffer.length < 240) return null; // DHCP最小长度
+
+        const op = buffer[0]; // 1: request, 2: reply
+        const htype = buffer[1]; // 硬件类型
+        const hlen = buffer[2]; // 硬件地址长度
+        const xid = buffer.readUInt32BE(4); // 事务ID
+
+        // 获取客户端MAC地址
+        const chaddr = buffer.slice(28, 28 + hlen)
+            .toString('hex')
+            .match(/.{1,2}/g)
+            .join(':');
+
+        // 获取分配的IP地址
+        const yiaddr = [
+            buffer[16], buffer[17], buffer[18], buffer[19]
+        ].join('.');
+
+        // 解析DHCP选项
+        let options = {};
+        let pos = 240; // 跳过固定头部
+        while (pos < buffer.length) {
+            const optionType = buffer[pos];
+            if (optionType === 255) break; // 结束标记
+            if (optionType === 0) { // padding
+                pos++;
+                continue;
+            }
+            const optionLen = buffer[pos + 1];
+            if (optionType === 53) { // Message Type
+                options.messageType = DHCP_MESSAGE_TYPES[buffer[pos + 2]] || 'UNKNOWN';
+            }
+            pos += 2 + optionLen;
+        }
+
+        return {
+            operation: op === 1 ? 'REQUEST' : 'REPLY',
+            transactionId: '0x' + xid.toString(16),
+            clientMac: chaddr,
+            assignedIp: yiaddr,
+            messageType: options.messageType
+        };
     }
 }
 
