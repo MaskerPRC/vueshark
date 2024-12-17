@@ -8,8 +8,8 @@
 VueShark is a network packet analysis tool based on Electron and Vue. Its goal is to gradually align with Wireshark’s capabilities while simplifying the developer experience, offering a user-friendly UI, and providing automated setup for capturing packets. With VueShark, you can quickly establish a packet capture environment on your desktop, visually inspect network traffic data, perform traffic interruption and forwarding, and even attempt HTTPS man-in-the-middle (MITM) analysis. VueShark aims to be a cross-platform, automated, easily extensible, and modern network analysis tool.
 
 ## Examples
-![img.png](img.png)
-![img_1.png](img_1.png)
+<img alt="img_2.png" src="doc/img_2.png" width="80%"/>
+<img alt="img_4.png" src="doc/img_4.png" width="80%"/>
 ## Key Features
 
 - **Cross-Platform Support**: Designed to run on major operating systems (Windows, macOS, Linux), ensuring a consistent experience across different environments.
