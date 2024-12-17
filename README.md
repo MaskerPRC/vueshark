@@ -10,6 +10,7 @@ VueShark is a network packet analysis tool based on Electron and Vue. Its goal i
 ## Examples
 <img alt="img_2.png" src="doc/img_2.png" width="80%"/>
 <img alt="img_4.png" src="doc/img_4.png" width="80%"/>
+
 ## Key Features
 
 - **Cross-Platform Support**: Designed to run on major operating systems (Windows, macOS, Linux), ensuring a consistent experience across different environments.
