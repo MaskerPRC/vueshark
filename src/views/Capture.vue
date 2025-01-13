@@ -68,7 +68,7 @@
             <div class="field-info">
               <p><strong>字段名称：</strong>{{ selectedField.name }}</p>
               <p><strong>当前值：</strong>{{ selectedField.value }}</p>
-              <p><strong>描述：</strong>{{ getFieldDescription(selectedField) }}</p>
+              <p><strong>描述：</strong>{{selectedField.description }}</p>
             </div>
           </template>
         </div>
@@ -80,7 +80,6 @@
 <script>
 import { ipcRenderer } from 'electron';
 import TreeItem from './components/TreeItem.vue';
-import { protocolDefs } from '../utils/protocol-definitions';
 
 export default {
   name: 'Capture',
@@ -133,9 +132,6 @@ export default {
     },
     onFieldSelect(field) {
       this.selectedField = field;
-    },
-    getFieldDescription(field) {
-      return protocolDefs.getFieldDescription(field.protocol, field.name, field.value);
     }
   }
 };
