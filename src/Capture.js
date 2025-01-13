@@ -7,12 +7,14 @@ const parseDHCP = require('./parsers/DHCPParser');
 const parseARP = require('./parsers/ARPParser');
 const parseTCP = require('./parsers/TCPParser');
 const parseUDP = require('./parsers/UDPParser');
-const parseICMP = require('./parsers/ICMPParser'); // 引入 ICMP 解析器
+const parseICMP = require('./parsers/ICMPParser');
+const parseRIP = require('./parsers/RIPParser'); // 引入 RIP 解析器
 const dnsPacket = require('dns-packet');
 
 const DHCP_SERVER_PORT = 67;
 const DHCP_CLIENT_PORT = 68;
 const DNS_PORT = 53;
+const RIP_PORT = 520; // RIP 使用 UDP 端口 520
 
 function toIpAddr(addr) {
     if (!addr) return '';
@@ -100,6 +102,7 @@ class Capture {
                     const isDNS = udp.info.srcport === DNS_PORT || udp.info.dstport === DNS_PORT;
                     const isDHCP = (udp.info.srcport === DHCP_SERVER_PORT && udp.info.dstport === DHCP_CLIENT_PORT) ||
                         (udp.info.srcport === DHCP_CLIENT_PORT && udp.info.dstport === DHCP_SERVER_PORT);
+                    const isRIP = udp.info.srcport === RIP_PORT || udp.info.dstport === RIP_PORT;
 
                     if (isDNS) {
                         try {
@@ -121,6 +124,17 @@ class Capture {
                             }
                         } catch (err) {
                             console.error('DHCP decode error:', err);
+                        }
+                        protocolHandled = true;
+                    } else if (isRIP) {
+                        try {
+                            const payload = this.buffer.slice(udp.offset, nbytes);
+                            const ripInfo = parseRIP(payload, src, dst, udp, ethernet, this.captureCount);
+                            if (ripInfo) {
+                                callback(ripInfo);
+                            }
+                        } catch (err) {
+                            console.error('RIP decode error:', err);
                         }
                         protocolHandled = true;
                     } else {
