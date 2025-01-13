@@ -6,7 +6,8 @@ const parseDNS = require('./parsers/DNSParser');
 const parseDHCP = require('./parsers/DHCPParser');
 const parseARP = require('./parsers/ARPParser');
 const parseTCP = require('./parsers/TCPParser');
-const parseUDP = require('./parsers/UDPParser'); // 引入 UDP 解析器
+const parseUDP = require('./parsers/UDPParser');
+const parseICMP = require('./parsers/ICMPParser'); // 引入 ICMP 解析器
 const dnsPacket = require('dns-packet');
 
 const DHCP_SERVER_PORT = 67;
@@ -52,23 +53,50 @@ class Capture {
 
         this.capInstance.on('packet', (nbytes, trunc) => {
             this.captureCount++;
-            let ethernet = decoders.Ethernet(this.buffer);
+            let ethernet;
+            try {
+                ethernet = decoders.Ethernet(this.buffer);
+            } catch (err) {
+                console.error('Ethernet decode error:', err);
+                return;
+            }
 
             if (ethernet.info.type === PROTOCOL.ETHERNET.IPV4) {
-                let ipv4 = decoders.IPV4(this.buffer, ethernet.offset);
+                let ipv4;
+                try {
+                    ipv4 = decoders.IPV4(this.buffer, ethernet.offset);
+                } catch (err) {
+                    console.error('IPv4 decode error:', err);
+                    return;
+                }
+
                 const src = ipv4.info.srcaddr;
                 const dst = ipv4.info.dstaddr;
                 let protocolHandled = false;
 
                 if (ipv4.info.protocol === PROTOCOL.IP.TCP) {
-                    const tcp = decoders.TCP(this.buffer, ipv4.offset);
+                    let tcp;
+                    try {
+                        tcp = decoders.TCP(this.buffer, ipv4.offset);
+                    } catch (err) {
+                        console.error('TCP decode error:', err);
+                        return;
+                    }
+
                     const result = parseTCP(this.buffer, src, dst, tcp, ethernet, this.captureCount);
                     if (result) {
-                        callback(result);
+                        // callback(result);
                     }
                     protocolHandled = true;
                 } else if (ipv4.info.protocol === PROTOCOL.IP.UDP) {
-                    const udp = decoders.UDP(this.buffer, ipv4.offset);
+                    let udp;
+                    try {
+                        udp = decoders.UDP(this.buffer, ipv4.offset);
+                    } catch (err) {
+                        console.error('UDP decode error:', err);
+                        return;
+                    }
+
                     const isDNS = udp.info.srcport === DNS_PORT || udp.info.dstport === DNS_PORT;
                     const isDHCP = (udp.info.srcport === DHCP_SERVER_PORT && udp.info.dstport === DHCP_CLIENT_PORT) ||
                         (udp.info.srcport === DHCP_CLIENT_PORT && udp.info.dstport === DHCP_SERVER_PORT);
@@ -107,12 +135,22 @@ class Capture {
                         }
                         protocolHandled = true;
                     }
+                } else if (ipv4.info.protocol === PROTOCOL.IP.ICMP) { // 添加 ICMP 处理
+                    try {
+                        const icmpInfo = parseICMP(this.buffer, src, dst, ipv4, ethernet, this.captureCount);
+                        if (icmpInfo) {
+                            callback(icmpInfo);
+                        }
+                    } catch (err) {
+                        console.error('ICMP parse error:', err);
+                    }
+                    protocolHandled = true;
                 } else {
-                    // 处理其他 IP 协议（如 ICMP 等），可在此扩展
+                    // 处理其他 IP 协议（如 IGMP 等），可在此扩展
                 }
 
                 if (!protocolHandled) {
-                    // 处理未被识别的协议
+                    // 处理未被识别的协议（可选）
                 }
             } else if (ethernet.info.type === PROTOCOL.ETHERNET.ARP) {
                 try {
