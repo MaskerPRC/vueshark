@@ -86,7 +86,7 @@ class Capture {
 
                     const result = parseTCP(this.buffer, src, dst, tcp, ethernet, this.captureCount);
                     if (result) {
-                        // callback(result);
+                        callback(result);
                     }
                     protocolHandled = true;
                 } else if (ipv4.info.protocol === PROTOCOL.IP.UDP) {
