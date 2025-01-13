@@ -88,7 +88,7 @@ export default {
   },
   data() {
     return {
-      filter: '',
+      filter: 'port 53',
       captureResult: [],
       selectedPacket: null,
       selectedField: null
