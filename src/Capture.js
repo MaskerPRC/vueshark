@@ -9,7 +9,6 @@ const parseTCP = require('./parsers/TCPParser');
 const parseUDP = require('./parsers/UDPParser');
 const parseICMP = require('./parsers/ICMPParser');
 const parseRIP = require('./parsers/RIPParser'); // 引入 RIP 解析器
-const dnsPacket = require('dns-packet');
 
 const DHCP_SERVER_PORT = 67;
 const DHCP_CLIENT_PORT = 68;
