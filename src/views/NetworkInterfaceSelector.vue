@@ -9,16 +9,16 @@
           class="search-input"
       />
     </div>
-    <ul>
-      <li
+    <ul class="network-list">
+      <div class="list-item"
           v-for="(item, index) in filteredNetworkInterfaceList"
           :key="item.name"
           @click="selectDevice(item.name)"
-          :class="{'selected': selectedIndex === index}"
+          :class="{ 'selected': selectedIndex === index }"
       >
         <h3>{{ item.name }}</h3>
         <pre>{{ item.description }}</pre>
-      </li>
+      </div>
     </ul>
   </div>
 </template>
@@ -68,79 +68,131 @@ export default {
 </script>
 
 <style scoped>
+/* 产品B的重写样式 */
 .network-selector {
-  padding: 20px;
-  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px;
+  background: white;
+  border: 1px solid black;
+  max-width: 800px; /* 增加最大宽度以适应多列布局 */
+  margin: 0 auto;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 h2 {
-  font-size: 20px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 10px;
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 24px;
+  font-weight: bold;
+  color: #000;
 }
 
 .search-container {
   display: flex;
-  justify-content: center; /* 水平居中 */
-  position: sticky; /* 固定位置 */
-  top: 20px; /* 离顶部的距离 */
-  z-index: 10; /* 确保搜索框在上面 */
-  margin-bottom: 20px; /* 搜索框和下方内容的间距 */
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 20px;
 }
 
 .search-input {
-  width: 300px; /* 固定宽度 */
-  height: 40px; /* 固定高度 */
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  font-size: 14px;
-  color: #333;
+  width: 100%;
+  max-width: 400px;
+  height: 40px;
+  padding: 10px 15px;
+  border: 1px solid black;
+  font-size: 16px;
+  color: #000;
+  background-color: #fff;
   transition: border-color 0.3s ease;
 }
 
 .search-input:focus {
-  border-color: #1677ff;
+  border-color: #000;
   outline: none;
 }
 
-ul {
-  list-style: none;
+.network-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px; /* 适配器项之间的间距 */
+  justify-content: center;
+  width: 100%;
   padding: 0;
 }
 
-li {
+.network-list .list-item {
   cursor: pointer;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  margin-bottom: 10px;
-  padding: 12px;
+  border: 1px solid black;
+  padding: 15px;
   background-color: #fff;
   transition: all 0.3s ease;
+  flex: 1 1 calc(50% - 20px); /* 两列布局，减去间距 */
+  box-sizing: border-box;
+  max-width: 45%; /* 控制每个适配器项的最大宽度 */
 }
 
-li:hover {
-  border-color: #1677ff;
-  background-color: #f7faff;
+.network-list .list-item:hover {
+  border-color: #333;
+  background-color: #f0f0f0;
 }
 
-li.selected {
-  border-color: #1677ff;
-  background-color: #e6f4ff;
+.network-list .list-item.selected {
+  border-color: #000;
+  background-color: #e6e6e6;
 }
 
-h3 {
+.network-list h3 {
+  margin: 0 0 5px 0;
+  font-size: 18px;
+  color: #000;
+}
+
+.network-list pre {
   margin: 0;
-  font-size: 16px;
-  color: #333;
-}
-
-pre {
-  margin: 5px 0 0 0;
   font-size: 14px;
-  color: #666;
+  color: #333;
   white-space: pre-wrap;
   word-break: break-word;
+  background-color: #f9f9f9;
+  padding: 10px;
+}
+
+/* 响应式设计 */
+@media (max-width: 800px) {
+  .network-list .list-item {
+    flex: 1 1 calc(50% - 20px);
+    max-width: 45%;
+  }
+}
+
+@media (max-width: 600px) {
+  .network-selector {
+    padding: 20px;
+    max-width: 100%;
+  }
+
+  .search-input {
+    max-width: 100%;
+  }
+
+  h2 {
+    font-size: 20px;
+  }
+
+  .network-list .list-item {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+
+  .network-list pre {
+    font-size: 12px;
+    padding: 8px;
+  }
+
+  .network-list h3 {
+    font-size: 16px;
+  }
 }
 </style>
