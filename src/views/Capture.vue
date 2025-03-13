@@ -118,10 +118,10 @@
                 />
               </div>
             </div>
-            
+
             <!-- 左右分隔符 -->
             <div class="vertical-resizer" @mousedown="startHorizontalResizing"></div>
-            
+
             <!-- 右侧：字段解释 -->
             <div class="detail-right" :style="{ width: (100 - detailLeftWidth) + '%' }">
               <template v-if="selectedField">
@@ -165,7 +165,7 @@ export default {
   },
   data() {
     return {
-      filter: '',
+      filter: 'port 53',
       captureResult: [],
       selectedPacket: null,
       selectedField: null,
@@ -227,7 +227,7 @@ export default {
     },
     getStatusClass(packet) {
       // 根据状态返回不同的CSS类
-      if (packet.length < 100) return 'status-error'; 
+      if (packet.length < 100) return 'status-error';
       if (packet.length < 300) return 'status-success';
       return 'status-warning';
     },
@@ -247,28 +247,28 @@ export default {
       this.isResizing = true;
       this.startY = e.clientY;
       this.startHeight = this.detailsPanelHeight;
-      
+
       // 添加禁用文本选择的类
       document.body.classList.add('resizing');
-      
+
       document.addEventListener('mousemove', this.handleResizing);
       document.addEventListener('mouseup', this.stopResizing);
     },
-    
+
     handleResizing(e) {
       if (!this.isResizing) return;
-      
+
       const deltaY = this.startY - e.clientY;
       const newHeight = Math.max(100, Math.min(window.innerHeight - 200, this.startHeight + deltaY));
       this.detailsPanelHeight = newHeight;
     },
-    
+
     stopResizing() {
       this.isResizing = false;
-      
+
       // 移除禁用文本选择的类
       document.body.classList.remove('resizing');
-      
+
       document.removeEventListener('mousemove', this.handleResizing);
       document.removeEventListener('mouseup', this.stopResizing);
     },
@@ -276,32 +276,32 @@ export default {
       this.isHorizontalResizing = true;
       this.startX = e.clientX;
       this.startWidth = this.detailLeftWidth;
-      
+
       // 添加禁用文本选择的类
       document.body.classList.add('resizing');
-      
+
       document.addEventListener('mousemove', this.handleHorizontalResizing);
       document.addEventListener('mouseup', this.stopHorizontalResizing);
     },
-    
+
     handleHorizontalResizing(e) {
       if (!this.isHorizontalResizing) return;
-      
+
       const container = e.target.parentElement;
       const containerWidth = container.offsetWidth;
       const deltaX = e.clientX - this.startX;
       const deltaPercentage = (deltaX / containerWidth) * 100;
-      
+
       const newWidth = Math.max(20, Math.min(80, this.startWidth + deltaPercentage));
       this.detailLeftWidth = newWidth;
     },
-    
+
     stopHorizontalResizing() {
       this.isHorizontalResizing = false;
-      
+
       // 移除禁用文本选择的类
       document.body.classList.remove('resizing');
-      
+
       document.removeEventListener('mousemove', this.handleHorizontalResizing);
       document.removeEventListener('mouseup', this.stopHorizontalResizing);
     },
@@ -790,7 +790,7 @@ export default {
   .panel-header {
     flex-wrap: wrap;
   }
-  
+
   .panel-title {
     width: 100%;
     margin-bottom: 10px;
@@ -799,12 +799,12 @@ export default {
   .detail-content {
     flex-direction: column;
   }
-  
+
   .detail-left,
   .detail-right {
     width: 100%;
   }
-  
+
   .detail-left {
     border-right: none;
     border-bottom: 1px solid var(--border-color);
