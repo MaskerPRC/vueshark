@@ -1,25 +1,36 @@
 <template>
   <div class="network-selector">
-    <h2>请选择网卡</h2>
-    <div class="search-container">
-      <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="搜索网卡..."
-          class="search-input"
-      />
+    <div class="header">
+      <div class="logo">WireShark // 代理日志</div>
+      <div class="version">v0.0</div>
     </div>
-    <ul class="network-list">
-      <div class="list-item"
-          v-for="(item, index) in filteredNetworkInterfaceList"
-          :key="item.name"
-          @click="selectDevice(item.name)"
-          :class="{ 'selected': selectedIndex === index }"
-      >
-        <h3>{{ item.name }}</h3>
-        <pre>{{ item.description }}</pre>
+
+    <div class="selector-content">
+      <h2>选择网络接口</h2>
+      <div class="search-container">
+        <div class="filter-icon">🔍</div>
+        <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="搜索网卡..."
+            class="search-input"
+        />
       </div>
-    </ul>
+      <div class="network-list">
+        <div class="list-item"
+            v-for="(item, index) in filteredNetworkInterfaceList"
+            :key="item.name"
+            @click="selectDevice(item.name)"
+            :class="{ 'selected': selectedIndex === index }"
+        >
+          <div class="interface-icon">📶</div>
+          <div class="interface-details">
+            <h3>{{ item.name }}</h3>
+            <pre>{{ item.description }}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -68,17 +79,48 @@ export default {
 </script>
 
 <style scoped>
-/* 产品B的重写样式 */
+/* 网络选择器容器 */
 .network-selector {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--bg-dark);
+  overflow: hidden;
+}
+
+/* 顶部导航栏 */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--header-bg);
+  padding: 0 20px;
+  height: 40px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.logo {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--accent);
+}
+
+.version {
+  color: var(--text-light);
+  font-size: 12px;
+}
+
+/* 选择内容区域 */
+.selector-content {
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 40px;
-  background: white;
-  border: 1px solid black;
-  max-width: 800px; /* 增加最大宽度以适应多列布局 */
+  max-width: 900px;
   margin: 0 auto;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  flex: 1;
+  overflow-y: auto;
 }
 
 h2 {
@@ -86,113 +128,112 @@ h2 {
   margin-bottom: 30px;
   font-size: 24px;
   font-weight: bold;
-  color: #000;
+  color: var(--text-light);
 }
 
+/* 搜索框 */
 .search-container {
   display: flex;
-  justify-content: center;
+  align-items: center;
   width: 100%;
-  margin-bottom: 20px;
+  max-width: 500px;
+  margin-bottom: 30px;
+  background-color: var(--bg-darker);
+  border-radius: 4px;
+  padding: 5px 10px;
+}
+
+.filter-icon {
+  margin-right: 10px;
+  color: var(--text-light);
 }
 
 .search-input {
-  width: 100%;
-  max-width: 400px;
-  height: 40px;
-  padding: 10px 15px;
-  border: 1px solid black;
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 10px;
   font-size: 16px;
-  color: #000;
-  background-color: #fff;
-  transition: border-color 0.3s ease;
-}
-
-.search-input:focus {
-  border-color: #000;
+  color: var(--text-light);
   outline: none;
 }
 
+/* 网络列表 */
 .network-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px; /* 适配器项之间的间距 */
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
   width: 100%;
-  padding: 0;
 }
 
-.network-list .list-item {
+.list-item {
+  display: flex;
   cursor: pointer;
-  border: 1px solid black;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
   padding: 15px;
-  background-color: #fff;
-  transition: all 0.3s ease;
-  flex: 1 1 calc(50% - 20px); /* 两列布局，减去间距 */
-  box-sizing: border-box;
-  max-width: 45%; /* 控制每个适配器项的最大宽度 */
+  background-color: var(--bg-darker);
+  transition: all 0.2s ease;
 }
 
-.network-list .list-item:hover {
-  border-color: #333;
-  background-color: #f0f0f0;
+.list-item:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.network-list .list-item.selected {
-  border-color: #000;
-  background-color: #e6e6e6;
+.list-item.selected {
+  border-color: var(--accent);
+  background-color: var(--hover-bg);
 }
 
-.network-list h3 {
-  margin: 0 0 5px 0;
+.interface-icon {
+  font-size: 24px;
+  margin-right: 15px;
+  color: var(--accent);
+}
+
+.interface-details {
+  flex: 1;
+}
+
+h3 {
+  margin: 0 0 10px 0;
   font-size: 18px;
-  color: #000;
+  color: var(--text-light);
 }
 
-.network-list pre {
+pre {
   margin: 0;
   font-size: 14px;
-  color: #333;
+  color: var(--text-light);
+  opacity: 0.7;
   white-space: pre-wrap;
   word-break: break-word;
-  background-color: #f9f9f9;
+  background-color: rgba(0, 0, 0, 0.2);
   padding: 10px;
+  border-radius: 4px;
+  font-family: 'SF Mono', monospace;
 }
 
 /* 响应式设计 */
 @media (max-width: 800px) {
-  .network-list .list-item {
-    flex: 1 1 calc(50% - 20px);
-    max-width: 45%;
+  .network-list {
+    grid-template-columns: 1fr;
+  }
+  
+  .selector-content {
+    padding: 20px;
   }
 }
 
 @media (max-width: 600px) {
-  .network-selector {
-    padding: 20px;
-    max-width: 100%;
-  }
-
-  .search-input {
-    max-width: 100%;
-  }
-
   h2 {
     font-size: 20px;
   }
 
-  .network-list .list-item {
-    flex: 1 1 100%;
-    max-width: 100%;
-  }
-
-  .network-list pre {
+  pre {
     font-size: 12px;
-    padding: 8px;
-  }
-
-  .network-list h3 {
-    font-size: 16px;
   }
 }
 </style>
