@@ -1,76 +1,136 @@
 <template>
   <div class="capture-container">
-    <!-- 顶部工具栏 -->
-    <div class="toolbar">
-      <h3>正在捕获网卡: {{ deviceName }}</h3>
-      <div class="filter-bar">
-        <label>筛选条件：</label>
-        <input v-model="filter" placeholder="请输入BPF过滤表达式"/>
-        <button @click="onSearch" class="capture-button">开始捕获</button>
-      </div>
+    <!-- 顶部导航栏 -->
+    <div class="header">
+      <div class="logo">WireShark // 代理日志</div>
+      <div class="version">v0.0</div>
     </div>
 
-    <!-- 主体内容区域 -->
-    <div class="main-content">
-      <!-- 封包列表 -->
-      <div class="packet-list">
-        <table>
-          <thead>
-          <tr>
-            <th>No.</th>
-            <th>Time</th>
-            <th>Source</th>
-            <th>Destination</th>
-            <th>Protocol</th>
-            <th>Length</th>
-            <th>Info</th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr
-              v-for="packet in captureResult"
-              :key="packet.index"
-              :class="{ selected: selectedPacket === packet }"
-              @click="selectPacket(packet)"
-          >
-            <td>{{ packet.index }}</td>
-            <td>{{ formatTime(packet.time) }}</td>
-            <td>{{ packet.source }}</td>
-            <td>{{ packet.target }}</td>
-            <td>{{ packet.protocol }}</td>
-            <td>{{ packet.length }}</td>
-            <td>{{ packet.info }}</td>
-          </tr>
-          </tbody>
-        </table>
+    <!-- 左侧导航 -->
+    <div class="main-layout">
+      <div class="sidebar">
+        <div class="nav-item active">
+          <i class="icon">🏠</i>
+        </div>
+        <div class="nav-item">
+          <i class="icon">&lt;/&gt;</i>
+        </div>
+        <div class="nav-item">
+          <i class="icon">⟳</i>
+        </div>
+        <div class="nav-item">
+          <i class="icon">📁</i>
+        </div>
       </div>
 
-      <!-- 下半部分：封包详情和字段解释 -->
-      <div class="detail-section">
-        <!-- 左侧：封包详情树形结构 -->
-        <div class="packet-details">
-          <template v-if="selectedPacket">
-            <div class="tree-view">
-              <TreeItem
+      <!-- 主体内容区域 -->
+      <div class="content-area">
+        <!-- 搜索过滤器 -->
+        <div class="search-bar">
+          <div class="filter-icon">🔍</div>
+          <input v-model="filter" placeholder="搜索代理日志..." />
+          <button @click="onSearch" class="capture-button">开始捕获</button>
+          <div class="clear-button">🗑️</div>
+        </div>
+
+        <!-- 封包列表表格 -->
+        <div class="packet-table">
+          <table>
+            <thead>
+              <tr>
+                <th>方法</th>
+                <th>源</th>
+                <th>路径</th>
+                <th>状态</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="packet in captureResult"
+                :key="packet.index"
+                :class="{ selected: selectedPacket === packet }"
+                @click="selectPacket(packet)"
+              >
+                <td class="method">{{ packet.protocol }}</td>
+                <td class="origin">{{ packet.source }}</td>
+                <td class="path">{{ packet.info }}</td>
+                <td class="status">
+                  <span class="status-badge" :class="getStatusClass(packet)">
+                    {{ packet.length }} {{ getStatusText(packet) }}
+                  </span>
+                </td>
+                <td class="actions">
+                  <button class="copy-btn">📋</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 可拖动分隔符 -->
+        <div class="resizer" @mousedown="startResizing"></div>
+
+        <!-- 请求/响应详情面板 -->
+        <div v-if="selectedPacket" class="details-panel" :style="{ height: detailsPanelHeight + 'px' }">
+          <div class="panel-header">
+            <div class="panel-title">
+              {{ selectedPacket.protocol }} {{ selectedPacket.target }}
+            </div>
+            <div class="request-info">
+              <span class="request-label">REQUEST</span>
+              <span class="request-body">Body ({{ selectedPacket.length }} bytes)</span>
+              <span class="request-headers">Headers</span>
+            </div>
+            <div class="status-label" :class="getStatusClass(selectedPacket)">
+              HTTP/1.1 {{ getStatusCode(selectedPacket) }}
+            </div>
+            <div class="response-label">RESPONSE</div>
+          </div>
+
+          <!-- 详情视图 - 改为左右分栏 -->
+          <div class="detail-content">
+            <!-- 左侧：树形结构 -->
+            <div class="detail-left" :style="{ width: detailLeftWidth + '%' }">
+              <div class="tree-view">
+                <TreeItem
                   v-for="(layer, index) in selectedPacket.layers"
                   :key="index"
                   :layer="layer"
                   @field-select="onFieldSelect"
-              />
+                />
+              </div>
             </div>
-          </template>
-        </div>
-
-        <!-- 右侧：字段解释 -->
-        <div class="field-description">
-          <template v-if="selectedField">
-            <h4>字段信息</h4>
-            <div class="field-info">
-              <p><strong>字段名称：</strong>{{ selectedField.name }}</p>
-              <p><strong>当前值：</strong>{{ selectedField.value }}</p>
-              <p><strong>描述：</strong>{{ selectedField.description }}</p>
+            
+            <!-- 左右分隔符 -->
+            <div class="vertical-resizer" @mousedown="startHorizontalResizing"></div>
+            
+            <!-- 右侧：字段解释 -->
+            <div class="detail-right" :style="{ width: (100 - detailLeftWidth) + '%' }">
+              <template v-if="selectedField">
+                <div class="field-info">
+                  <div class="field-info-header">字段信息</div>
+                  <div class="field-info-content">
+                    <div class="field-info-item">
+                      <div class="field-info-label">字段名称</div>
+                      <div class="field-info-value">{{ selectedField.name }}</div>
+                    </div>
+                    <div class="field-info-item">
+                      <div class="field-info-label">当前值</div>
+                      <div class="field-info-value">{{ selectedField.value }}</div>
+                    </div>
+                    <div class="field-info-item">
+                      <div class="field-info-label">描述</div>
+                      <div class="field-info-value">{{ selectedField.description || '暂无描述' }}</div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+              <div v-else class="no-field-selected">
+                请选择左侧字段查看详细信息
+              </div>
             </div>
-          </template>
+          </div>
         </div>
       </div>
     </div>
@@ -91,7 +151,15 @@ export default {
       filter: 'port 53',
       captureResult: [],
       selectedPacket: null,
-      selectedField: null
+      selectedField: null,
+      detailsPanelHeight: 300,
+      detailLeftWidth: 60,
+      isResizing: false,
+      isHorizontalResizing: false,
+      startX: 0,
+      startY: 0,
+      startWidth: 0,
+      startHeight: 0
     };
   },
   computed: {
@@ -108,6 +176,10 @@ export default {
   },
   beforeUnmount() {
     ipcRenderer.removeListener('capture.on.packet', this.onPacket);
+    document.removeEventListener('mousemove', this.handleResizing);
+    document.removeEventListener('mouseup', this.stopResizing);
+    document.removeEventListener('mousemove', this.handleHorizontalResizing);
+    document.removeEventListener('mouseup', this.stopHorizontalResizing);
   },
   methods: {
     onPacket(event, result) {
@@ -132,213 +204,567 @@ export default {
     },
     onFieldSelect(field) {
       this.selectedField = field;
+    },
+    getStatusClass(packet) {
+      // 根据状态返回不同的CSS类
+      if (packet.length < 100) return 'status-error'; 
+      if (packet.length < 300) return 'status-success';
+      return 'status-warning';
+    },
+    getStatusText(packet) {
+      // 根据状态返回不同的文本
+      if (packet.length < 100) return 'ERROR';
+      if (packet.length < 300) return 'OK';
+      return 'NOT MODIFIED';
+    },
+    getStatusCode(packet) {
+      // 模拟状态码，实际应当从packet中获取
+      if (packet.length < 100) return '404 Not Found';
+      if (packet.length < 300) return '200 OK';
+      return '304 Not Modified';
+    },
+    startResizing(e) {
+      this.isResizing = true;
+      this.startY = e.clientY;
+      this.startHeight = this.detailsPanelHeight;
+      
+      // 添加禁用文本选择的类
+      document.body.classList.add('resizing');
+      
+      document.addEventListener('mousemove', this.handleResizing);
+      document.addEventListener('mouseup', this.stopResizing);
+    },
+    
+    handleResizing(e) {
+      if (!this.isResizing) return;
+      
+      const deltaY = this.startY - e.clientY;
+      const newHeight = Math.max(100, Math.min(window.innerHeight - 200, this.startHeight + deltaY));
+      this.detailsPanelHeight = newHeight;
+    },
+    
+    stopResizing() {
+      this.isResizing = false;
+      
+      // 移除禁用文本选择的类
+      document.body.classList.remove('resizing');
+      
+      document.removeEventListener('mousemove', this.handleResizing);
+      document.removeEventListener('mouseup', this.stopResizing);
+    },
+    startHorizontalResizing(e) {
+      this.isHorizontalResizing = true;
+      this.startX = e.clientX;
+      this.startWidth = this.detailLeftWidth;
+      
+      // 添加禁用文本选择的类
+      document.body.classList.add('resizing');
+      
+      document.addEventListener('mousemove', this.handleHorizontalResizing);
+      document.addEventListener('mouseup', this.stopHorizontalResizing);
+    },
+    
+    handleHorizontalResizing(e) {
+      if (!this.isHorizontalResizing) return;
+      
+      const container = e.target.parentElement;
+      const containerWidth = container.offsetWidth;
+      const deltaX = e.clientX - this.startX;
+      const deltaPercentage = (deltaX / containerWidth) * 100;
+      
+      const newWidth = Math.max(20, Math.min(80, this.startWidth + deltaPercentage));
+      this.detailLeftWidth = newWidth;
+    },
+    
+    stopHorizontalResizing() {
+      this.isHorizontalResizing = false;
+      
+      // 移除禁用文本选择的类
+      document.body.classList.remove('resizing');
+      
+      document.removeEventListener('mousemove', this.handleHorizontalResizing);
+      document.removeEventListener('mouseup', this.stopHorizontalResizing);
     }
   }
 };
 </script>
 
-<style scoped>/* 主容器样式 */
+<style scoped>
+/* 主题颜色变量 */
+:root {
+  --bg-dark: #1a1a1a;
+  --bg-darker: #121212;
+  --text-light: #e0e0e0;
+  --accent: #00c8aa;
+  --sidebar-bg: #1a1a1a;
+  --header-bg: #121212;
+  --border-color: #333;
+  --success-color: #00c8aa;
+  --warning-color: #ffab00;
+  --error-color: #ff5252;
+  --hover-bg: #2a2a2a;
+  --selection-bg: #333;
+}
+
+/* 主容器样式 */
 .capture-container {
-  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   height: 100vh;
   width: 100vw;
-  background-color: #ffffff; /* 白色背景 */
-  font-family: Arial, sans-serif;
-  color: #000000; /* 黑色字体 */
+  background-color: var(--bg-dark);
+  font-family: 'SF Mono', 'Segoe UI', monospace;
+  color: var(--text-light);
   overflow: hidden;
-  padding: 0px 40px 20px 40px;
+  margin: 0;
+  padding: 0;
 }
 
-/* 顶部工具栏样式 */
-.toolbar {
+/* 顶部导航栏 */
+.header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: white; /* 白色背景 */
+  background-color: var(--header-bg);
+  padding: 0 20px;
+  height: 40px;
+  border-bottom: 1px solid var(--border-color);
+  -webkit-app-region: drag;
 }
 
-.toolbar-title {
-  font-size: 24px;
+.logo {
+  font-size: 16px;
   font-weight: bold;
-  color: #000;
+  color: var(--accent);
+  -webkit-app-region: no-drag;
 }
 
-.toolbar-actions {
+.version {
+  color: var(--text-light);
+  font-size: 12px;
+  -webkit-app-region: no-drag;
+}
+
+/* 主布局 */
+.main-layout {
   display: flex;
-  gap: 10px;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* 侧边栏 */
+.sidebar {
+  width: 60px;
+  background-color: var(--sidebar-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 20px;
+}
+
+.nav-item {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.nav-item.active {
+  background-color: var(--hover-bg);
+}
+
+.nav-item:hover {
+  background-color: var(--hover-bg);
+}
+
+.icon {
+  font-size: 18px;
+  color: var(--text-light);
+}
+
+/* 内容区域 */
+.content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* 搜索栏 */
+.search-bar {
+  display: flex;
+  align-items: center;
+  margin: 15px;
+  background-color: var(--bg-darker);
+  border-radius: 4px;
+  padding: 5px 10px;
+}
+
+.filter-icon {
+  margin-right: 10px;
+  color: var(--text-light);
+}
+
+.search-bar input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-light);
+  padding: 8px;
+  font-size: 14px;
+  outline: none;
 }
 
 .capture-button {
-  background: black;
-  color: white;
+  background-color: var(--accent);
+  color: var(--bg-dark);
   border: none;
-  padding: 10px 20px;
+  padding: 6px 12px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.3s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  font-size: 12px;
+  font-weight: bold;
+  margin: 0 10px;
 }
 
-.capture-button:hover {
-  background: #333;
+.clear-button {
+  cursor: pointer;
+  color: var(--text-light);
 }
 
-/* 过滤栏样式 */
-.filter-bar {
-  display: flex;
-  gap: 20px;
-  align-items: center;
-  margin-bottom: 30px;
-}
-
-.filter-bar label {
-  font-size: 16px;
-  color: #000;
-}
-
-.filter-bar input {
-  padding: 10px;
-  font-size: 16px;
-  border: 1px solid #000;
-  background-color: #fff;
-  width: 250px;
-  color: #000;
-}
-
-/* 主内容区域样式 */
-.main-content {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  overflow: hidden;
-}
-
-/* 封包列表样式 */
-.packet-list {
+/* 封包表格 */
+.packet-table {
   flex: 1;
   overflow-y: auto;
-  margin-bottom: 20px;
-  padding-right: 10px;
-  border: 1px solid #000;
+  padding: 0 15px;
+  min-height: 100px;
 }
 
-.packet-list table {
+.packet-table table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.packet-table th {
+  text-align: left;
+  padding: 10px 15px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-light);
+  font-weight: normal;
   font-size: 14px;
 }
 
-.packet-list th,
-.packet-list td {
-  padding: 12px;
-  border: 1px solid #000;
-  text-align: left;
-}
-
-.packet-list th {
-  background-color: #000;
-  color: #fff;
-}
-
-.packet-list tr {
-  transition: background-color 0.3s, transform 0.3s;
-}
-
-.packet-list tr:hover {
-  background-color: #f0f0f0;
-  transform: translateY(-2px);
-}
-
-.packet-list tr.selected {
-  background-color: #e0e0e0;
-}
-
-/* 下半部分：封包详情和字段解释 */
-.detail-section {
-  display: flex;
-  height: 50%;
+.packet-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-light);
+  font-size: 14px;
   overflow: hidden;
-  gap: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.packet-details {
-  width: 60%;
+.packet-table tr {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.packet-table tr:hover {
+  background-color: var(--hover-bg);
+}
+
+.packet-table tr.selected {
+  background-color: var(--selection-bg);
+}
+
+/* 表格列宽 */
+.method {
+  width: 80px;
+}
+
+.origin {
+  width: 25%;
+}
+
+.path {
+  width: 45%;
+}
+
+.status {
+  width: 140px;
+}
+
+.actions {
+  width: 50px;
+  text-align: center;
+}
+
+/* 状态标签 */
+.status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.status-success {
+  background-color: var(--success-color);
+  color: var(--bg-dark);
+}
+
+.status-warning {
+  background-color: var(--warning-color);
+  color: var(--bg-dark);
+}
+
+.status-error {
+  background-color: var(--error-color);
+  color: var(--bg-dark);
+}
+
+/* 复制按钮 */
+.copy-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-light);
+  opacity: 0.6;
+}
+
+.copy-btn:hover {
+  opacity: 1;
+}
+
+/* 可拖动分隔符样式 */
+.resizer {
+  height: 4px;
+  background-color: var(--border-color);
+  cursor: row-resize;
+  transition: background-color 0.2s;
+}
+
+.resizer:hover {
+  background-color: var(--accent);
+}
+
+/* 修改详情面板样式 */
+.details-panel {
+  border-top: none;
+  min-height: 100px;
+  max-height: calc(100vh - 200px);
+  background-color: var(--bg-darker);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: height 0.1s;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.panel-title {
+  font-weight: bold;
+  margin-right: 20px;
+  font-size: 16px;
+}
+
+.request-info {
+  display: flex;
+  flex: 1;
+  align-items: center;
+}
+
+.request-label,
+.response-label {
+  color: var(--text-light);
+  font-size: 12px;
+  opacity: 0.7;
+  margin-right: 15px;
+}
+
+.request-body,
+.request-headers {
+  margin-right: 15px;
+  font-size: 14px;
+  padding: 4px 8px;
+  background-color: var(--hover-bg);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.request-body {
+  background-color: var(--selection-bg);
+}
+
+.status-label {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-right: 15px;
+}
+
+/* 修改内容区域样式 */
+.detail-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+.detail-left {
   overflow: auto;
-  border: 1px solid #000;
-  background-color: #ffffff;
+  padding: 15px;
+  border-right: none;
+  position: relative;
+  transition: width 0.1s;
 }
 
-.field-description {
-  width: 40%;
-  padding: 20px;
-  border: 1px solid #000;
-  background-color: #ffffff;
+.detail-right {
+  overflow: auto;
+  padding: 15px;
+  background-color: var(--bg-darker);
+  position: relative;
+  transition: width 0.1s;
 }
 
 .tree-view {
-  font-family: monospace;
+  font-family: 'SF Mono', monospace;
   font-size: 14px;
+  line-height: 1.5;
 }
 
 .field-info {
-  font-size: 14px;
-  line-height: 1.6;
+  color: var(--text-light);
 }
 
-.field-info p {
-  margin-bottom: 10px;
-}
-
-h4 {
-  font-size: 18px;
-  color: #000000;
-  font-weight: 600;
+.field-info-header {
+  font-size: 16px;
+  font-weight: bold;
   margin-bottom: 15px;
+  color: var(--accent);
+}
+
+.field-info-content {
+  background-color: var(--bg-dark);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.field-info-item {
+  padding: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.field-info-item:last-child {
+  border-bottom: none;
+}
+
+.field-info-label {
+  font-size: 12px;
+  color: var(--text-light);
+  opacity: 0.7;
+  margin-bottom: 4px;
+}
+
+.field-info-value {
+  font-size: 14px;
+  color: var(--text-light);
+  word-break: break-all;
+}
+
+.no-field-selected {
+  color: var(--text-light);
+  opacity: 0.5;
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
 }
 
 /* 滚动条样式 */
-.packet-list::-webkit-scrollbar,
-.packet-details::-webkit-scrollbar,
-.field-description::-webkit-scrollbar {
+.packet-table::-webkit-scrollbar,
+.detail-left::-webkit-scrollbar,
+.detail-right::-webkit-scrollbar {
   width: 8px;
-  background-color: #ffffff; /* 滚动条背景色 */
+  background-color: var(--bg-darker);
 }
 
-.packet-list::-webkit-scrollbar-track,
-.packet-details::-webkit-scrollbar-track,
-.field-description::-webkit-scrollbar-track {
-  background-color: #ffffff; /* 滚动条轨道背景色 */
+.packet-table::-webkit-scrollbar-thumb,
+.detail-left::-webkit-scrollbar-thumb,
+.detail-right::-webkit-scrollbar-thumb {
+  background-color: var(--border-color);
+  border-radius: 4px;
 }
 
-.packet-list::-webkit-scrollbar-thumb,
-.packet-details::-webkit-scrollbar-thumb,
-.field-description::-webkit-scrollbar-thumb {
-  background-color: #000000; /* 滚动条滑块颜色 */
+.packet-table::-webkit-scrollbar-thumb:hover,
+.detail-left::-webkit-scrollbar-thumb:hover,
+.detail-right::-webkit-scrollbar-thumb:hover {
+  background-color: var(--accent);
 }
 
-.packet-list::-webkit-scrollbar-thumb:hover,
-.packet-details::-webkit-scrollbar-thumb:hover,
-.field-description::-webkit-scrollbar-thumb:hover {
-  background-color: #333333; /* 滑块悬停颜色 */
-}
-
-/* 响应式设计调整 */
+/* 媒体查询 */
 @media (max-width: 1200px) {
-  .packet-details {
+  .panel-header {
+    flex-wrap: wrap;
+  }
+  
+  .panel-title {
     width: 100%;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
   }
 
-  .field-description {
-    width: 100%;
-  }
-
-  .detail-section {
+  .detail-content {
     flex-direction: column;
   }
+  
+  .detail-left,
+  .detail-right {
+    width: 100%;
+  }
+  
+  .detail-left {
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
 }
 
+/* 垂直分隔符样式 */
+.vertical-resizer {
+  width: 4px;
+  background-color: var(--border-color);
+  cursor: col-resize;
+  transition: background-color 0.2s;
+}
+
+.vertical-resizer:hover {
+  background-color: var(--accent);
+}
+
+/* 禁用文本选择 */
+:global(.resizing) {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  cursor: inherit !important;
+}
+
+/* 分隔符默认禁用文本选择 */
+.resizer,
+.vertical-resizer {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
 </style>

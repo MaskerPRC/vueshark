@@ -6,7 +6,7 @@
         :class="{ selected: isSelected }"
     >
       <span class="expand-icon">{{ expanded ? '▼' : '▶' }}</span>
-      <span @click.stop="$emit('field-select', layer)">{{ layer.name }}</span>
+      <span class="item-name" @click.stop="$emit('field-select', layer)">{{ layer.name }}</span>
     </div>
     <div v-if="expanded" class="tree-content">
       <div
@@ -54,40 +54,30 @@ export default {
 }
 </script>
 
-<style scoped>/* 产品B的修改后样式 */
-
-/* 容器样式 */
-.tree-container {
-  display: flex;
-  flex-direction: column;
-  background: white;
-  border: 1px solid black;
-  max-width: 600px;
-  margin: 0 auto;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
+<style scoped>
 /* 树项样式 */
 .tree-item {
-  margin-left: 10px;
-  transition: background-color 0.3s;
-}
-
-.tree-item:hover {
-  background-color: #f9f9f9;
+  margin-left: 15px;
+  transition: background-color 0.2s;
+  color: #e0e0e0;
 }
 
 /* 树头部样式 */
 .tree-header {
   cursor: pointer;
-  padding: 10px;
+  padding: 6px 0;
   display: flex;
   align-items: center;
-  transition: background-color 0.3s;
+  transition: background-color 0.2s;
+  border-radius: 4px;
 }
 
 .tree-header:hover {
-  background-color: #f0f0f0;
+  background-color: #2a2a2a;
+}
+
+.tree-header.selected {
+  background-color: #333;
 }
 
 /* 展开图标样式 */
@@ -96,56 +86,56 @@ export default {
   width: 16px;
   text-align: center;
   margin-right: 8px;
-  font-size: 14px;
-  color: #333;
+  font-size: 10px;
+  color: #00c8aa;
+}
+
+.item-name {
+  color: #e0e0e0;
+  font-weight: 500;
+}
+
+/* 树内容样式 */
+.tree-content {
+  padding-left: 10px;
+  border-left: 1px dotted #333;
+  margin-left: 8px;
 }
 
 /* 字段项样式 */
 .field-item {
-  padding: 10px 16px;
+  padding: 6px 8px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: background-color 0.2s;
   display: flex;
   align-items: center;
+  border-radius: 4px;
 }
 
 .field-item:hover {
-  background-color: #f0f0f0;
+  background-color: #2a2a2a;
 }
 
 .field-item.selected {
-  background-color: #e3f2fd;
+  background-color: #333;
 }
 
 /* 字段名称样式 */
 .field-name {
-  font-weight: bold;
+  color: #00c8aa;
   margin-right: 8px;
-  color: #000;
+  font-weight: 500;
+  font-size: 13px;
 }
 
 /* 字段值样式 */
 .field-value {
-  color: #666;
+  color: #a0a0a0;
   flex-grow: 1;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 500px;
 }
-
-/* 额外的全局样式 */
-body {
-  background-color: #fff;
-  color: #000;
-  font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 0;
-}
-
-a {
-  color: black;
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
-}
-
 </style>
