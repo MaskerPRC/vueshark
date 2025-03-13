@@ -19,7 +19,7 @@
           </svg>
         </div>
       </div>
-      <div class="version">v0.0</div>
+      <div class="version">{{ version }}</div>
     </div>
 
     <div class="selector-content">
@@ -53,6 +53,7 @@
 
 <script>
 const { ipcRenderer } = require('electron');
+const config = require('../config');
 
 export default {
   name: 'NetworkInterfaceSelector',
@@ -60,7 +61,8 @@ export default {
     return {
       networkInterfaceList: [],
       selectedIndex: -1,
-      searchQuery: ''  // 搜索查询字符串
+      searchQuery: '',  // 搜索查询字符串
+      version: config.version
     };
   },
   async mounted() {

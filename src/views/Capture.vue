@@ -20,7 +20,7 @@
           </svg>
         </div>
       </div>
-      <div class="version">v0.0</div>
+      <div class="version">{{ version }}</div>
     </div>
 
     <!-- 左侧导航 -->
@@ -156,6 +156,7 @@
 
 <script>
 const { ipcRenderer } = require('electron');
+const config = require('../config');
 import TreeItem from './components/TreeItem.vue';
 
 export default {
@@ -180,6 +181,7 @@ export default {
       deviceName: '',
       autoScroll: true,
       activeTab: 'request',  // 当前活动选项卡：'request'或'response'
+      version: config.version
     };
   },
   computed: {
