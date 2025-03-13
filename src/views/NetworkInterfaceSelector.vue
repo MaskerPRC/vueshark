@@ -164,7 +164,7 @@ h2 {
 /* 网络列表 */
 .network-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(3, 1fr); /* 改为固定的3列布局 */
   gap: 20px;
   width: 100%;
 }
@@ -220,9 +220,9 @@ pre {
 }
 
 /* 响应式设计 */
-@media (max-width: 800px) {
+@media (max-width: 1200px) {
   .network-list {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr); /* 中等屏幕显示2列 */
   }
   
   .selector-content {
@@ -230,7 +230,11 @@ pre {
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 700px) {
+  .network-list {
+    grid-template-columns: 1fr; /* 小屏幕才降为1列 */
+  }
+  
   h2 {
     font-size: 20px;
   }
