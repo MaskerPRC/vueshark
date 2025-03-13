@@ -32,6 +32,27 @@ class MainWindow {
                 });
             }
         });
+
+        // 窗口控制事件
+        ipcMain.on('window-control', (_, command) => {
+            if (!this.window) return;
+
+            switch (command) {
+                case 'minimize':
+                    this.window.minimize();
+                    break;
+                case 'maximize':
+                    if (this.window.isMaximized()) {
+                        this.window.unmaximize();
+                    } else {
+                        this.window.maximize();
+                    }
+                    break;
+                case 'close':
+                    this.window.close();
+                    break;
+            }
+        });
     }
 
     async create() {

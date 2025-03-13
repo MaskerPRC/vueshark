@@ -3,6 +3,23 @@
     <!-- 顶部导航栏 -->
     <div class="header">
       <div class="logo">WireShark // 代理日志</div>
+      <div class="window-controls">
+        <div class="control-btn minimize" @click="minimizeWindow">
+          <svg width="10" height="1" viewBox="0 0 10 1">
+            <path d="M0 0h10v1H0z" fill="currentColor" />
+          </svg>
+        </div>
+        <div class="control-btn maximize" @click="maximizeWindow">
+          <svg width="10" height="10" viewBox="0 0 10 10">
+            <path d="M0 0v10h10V0H0zm9 9H1V1h8v8z" fill="currentColor" />
+          </svg>
+        </div>
+        <div class="control-btn close" @click="closeWindow">
+          <svg width="10" height="10" viewBox="0 0 10 10">
+            <path d="M6.4 5l3.3-3.3c0.4-0.4 0.4-1 0-1.4s-1-0.4-1.4 0L5 3.6 1.7 0.3c-0.4-0.4-1-0.4-1.4 0s-0.4 1 0 1.4L3.6 5 0.3 8.3c-0.4 0.4-0.4 1 0 1.4 0.2 0.2 0.5 0.3 0.7 0.3s0.5-0.1 0.7-0.3L5 6.4l3.3 3.3c0.2 0.2 0.5 0.3 0.7 0.3s0.5-0.1 0.7-0.3c0.4-0.4 0.4-1 0-1.4L6.4 5z" fill="currentColor" />
+          </svg>
+        </div>
+      </div>
       <div class="version">v0.0</div>
     </div>
 
@@ -138,7 +155,7 @@
 </template>
 
 <script>
-import {ipcRenderer} from 'electron';
+const { ipcRenderer } = require('electron');
 import TreeItem from './components/TreeItem.vue';
 
 export default {
@@ -148,7 +165,7 @@ export default {
   },
   data() {
     return {
-      filter: 'port 53',
+      filter: '',
       captureResult: [],
       selectedPacket: null,
       selectedField: null,
@@ -159,7 +176,10 @@ export default {
       startX: 0,
       startY: 0,
       startWidth: 0,
-      startHeight: 0
+      startHeight: 0,
+      deviceName: '',
+      autoScroll: true,
+      activeTab: 'request',  // 当前活动选项卡：'request'或'response'
     };
   },
   computed: {
@@ -284,7 +304,17 @@ export default {
       
       document.removeEventListener('mousemove', this.handleHorizontalResizing);
       document.removeEventListener('mouseup', this.stopHorizontalResizing);
-    }
+    },
+    // 窗口控制函数
+    minimizeWindow() {
+      ipcRenderer.send('window-control', 'minimize');
+    },
+    maximizeWindow() {
+      ipcRenderer.send('window-control', 'maximize');
+    },
+    closeWindow() {
+      ipcRenderer.send('window-control', 'close');
+    },
   }
 };
 </script>
@@ -337,6 +367,49 @@ export default {
   font-weight: bold;
   color: var(--accent);
   -webkit-app-region: no-drag;
+}
+
+/* 窗口控制按钮 */
+.window-controls {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  margin-right: 15px;
+  -webkit-app-region: no-drag;
+}
+
+.control-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 30px;
+  height: 30px;
+  margin-left: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-light);
+}
+
+.control-btn svg {
+  width: 10px;
+  height: 10px;
+}
+
+.control-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.minimize:hover {
+  background-color: #565656;
+}
+
+.maximize:hover {
+  background-color: #565656;
+}
+
+.close:hover {
+  background-color: #E81123;
+  color: white;
 }
 
 .version {
