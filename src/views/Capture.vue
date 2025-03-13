@@ -68,8 +68,11 @@
           </table>
         </div>
 
+        <!-- 可拖动分隔符 -->
+        <div class="resizer" @mousedown="startResizing"></div>
+
         <!-- 请求/响应详情面板 -->
-        <div v-if="selectedPacket" class="details-panel">
+        <div v-if="selectedPacket" class="details-panel" :style="{ height: detailsPanelHeight + 'px' }">
           <div class="panel-header">
             <div class="panel-title">
               {{ selectedPacket.protocol }} {{ selectedPacket.target }}
@@ -88,7 +91,7 @@
           <!-- 详情视图 - 改为左右分栏 -->
           <div class="detail-content">
             <!-- 左侧：树形结构 -->
-            <div class="detail-left">
+            <div class="detail-left" :style="{ width: detailLeftWidth + '%' }">
               <div class="tree-view">
                 <TreeItem
                   v-for="(layer, index) in selectedPacket.layers"
@@ -99,8 +102,11 @@
               </div>
             </div>
             
+            <!-- 左右分隔符 -->
+            <div class="vertical-resizer" @mousedown="startHorizontalResizing"></div>
+            
             <!-- 右侧：字段解释 -->
-            <div class="detail-right">
+            <div class="detail-right" :style="{ width: (100 - detailLeftWidth) + '%' }">
               <template v-if="selectedField">
                 <div class="field-info">
                   <div class="field-info-header">字段信息</div>
@@ -145,7 +151,15 @@ export default {
       filter: 'port 53',
       captureResult: [],
       selectedPacket: null,
-      selectedField: null
+      selectedField: null,
+      detailsPanelHeight: 300,
+      detailLeftWidth: 60,
+      isResizing: false,
+      isHorizontalResizing: false,
+      startX: 0,
+      startY: 0,
+      startWidth: 0,
+      startHeight: 0
     };
   },
   computed: {
@@ -162,6 +176,10 @@ export default {
   },
   beforeUnmount() {
     ipcRenderer.removeListener('capture.on.packet', this.onPacket);
+    document.removeEventListener('mousemove', this.handleResizing);
+    document.removeEventListener('mouseup', this.stopResizing);
+    document.removeEventListener('mousemove', this.handleHorizontalResizing);
+    document.removeEventListener('mouseup', this.stopHorizontalResizing);
   },
   methods: {
     onPacket(event, result) {
@@ -204,6 +222,54 @@ export default {
       if (packet.length < 100) return '404 Not Found';
       if (packet.length < 300) return '200 OK';
       return '304 Not Modified';
+    },
+    startResizing(e) {
+      this.isResizing = true;
+      this.startY = e.clientY;
+      this.startHeight = this.detailsPanelHeight;
+      
+      document.addEventListener('mousemove', this.handleResizing);
+      document.addEventListener('mouseup', this.stopResizing);
+    },
+    
+    handleResizing(e) {
+      if (!this.isResizing) return;
+      
+      const deltaY = this.startY - e.clientY;
+      const newHeight = Math.max(100, Math.min(window.innerHeight - 200, this.startHeight + deltaY));
+      this.detailsPanelHeight = newHeight;
+    },
+    
+    stopResizing() {
+      this.isResizing = false;
+      document.removeEventListener('mousemove', this.handleResizing);
+      document.removeEventListener('mouseup', this.stopResizing);
+    },
+    startHorizontalResizing(e) {
+      this.isHorizontalResizing = true;
+      this.startX = e.clientX;
+      this.startWidth = this.detailLeftWidth;
+      
+      document.addEventListener('mousemove', this.handleHorizontalResizing);
+      document.addEventListener('mouseup', this.stopHorizontalResizing);
+    },
+    
+    handleHorizontalResizing(e) {
+      if (!this.isHorizontalResizing) return;
+      
+      const container = e.target.parentElement;
+      const containerWidth = container.offsetWidth;
+      const deltaX = e.clientX - this.startX;
+      const deltaPercentage = (deltaX / containerWidth) * 100;
+      
+      const newWidth = Math.max(20, Math.min(80, this.startWidth + deltaPercentage));
+      this.detailLeftWidth = newWidth;
+    },
+    
+    stopHorizontalResizing() {
+      this.isHorizontalResizing = false;
+      document.removeEventListener('mousemove', this.handleHorizontalResizing);
+      document.removeEventListener('mouseup', this.stopHorizontalResizing);
     }
   }
 };
@@ -249,17 +315,20 @@ export default {
   padding: 0 20px;
   height: 40px;
   border-bottom: 1px solid var(--border-color);
+  -webkit-app-region: drag;
 }
 
 .logo {
   font-size: 16px;
   font-weight: bold;
   color: var(--accent);
+  -webkit-app-region: no-drag;
 }
 
 .version {
   color: var(--text-light);
   font-size: 12px;
+  -webkit-app-region: no-drag;
 }
 
 /* 主布局 */
@@ -309,6 +378,7 @@ export default {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
 }
 
 /* 搜索栏 */
@@ -358,6 +428,7 @@ export default {
   flex: 1;
   overflow-y: auto;
   padding: 0 15px;
+  min-height: 100px;
 }
 
 .packet-table table {
@@ -457,14 +528,28 @@ export default {
   opacity: 1;
 }
 
-/* 详情面板 */
+/* 可拖动分隔符样式 */
+.resizer {
+  height: 4px;
+  background-color: var(--border-color);
+  cursor: row-resize;
+  transition: background-color 0.2s;
+}
+
+.resizer:hover {
+  background-color: var(--accent);
+}
+
+/* 修改详情面板样式 */
 .details-panel {
-  height: 50%;
-  border-top: 1px solid var(--border-color);
+  border-top: none;
+  min-height: 100px;
+  max-height: calc(100vh - 200px);
   background-color: var(--bg-darker);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  transition: height 0.1s;
 }
 
 .panel-header {
@@ -515,25 +600,28 @@ export default {
   margin-right: 15px;
 }
 
-/* 详情内容 */
+/* 修改内容区域样式 */
 .detail-content {
   flex: 1;
   display: flex;
   overflow: hidden;
+  position: relative;
 }
 
 .detail-left {
-  width: 60%;
   overflow: auto;
   padding: 15px;
-  border-right: 1px solid var(--border-color);
+  border-right: none;
+  position: relative;
+  transition: width 0.1s;
 }
 
 .detail-right {
-  width: 40%;
   overflow: auto;
   padding: 15px;
   background-color: var(--bg-darker);
+  position: relative;
+  transition: width 0.1s;
 }
 
 .tree-view {
@@ -634,5 +722,17 @@ export default {
     border-right: none;
     border-bottom: 1px solid var(--border-color);
   }
+}
+
+/* 垂直分隔符样式 */
+.vertical-resizer {
+  width: 4px;
+  background-color: var(--border-color);
+  cursor: col-resize;
+  transition: background-color 0.2s;
+}
+
+.vertical-resizer:hover {
+  background-color: var(--accent);
 }
 </style>

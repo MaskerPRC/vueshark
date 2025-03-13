@@ -98,17 +98,20 @@ export default {
   padding: 0 20px;
   height: 40px;
   border-bottom: 1px solid var(--border-color);
+  -webkit-app-region: drag;
 }
 
 .logo {
   font-size: 16px;
   font-weight: bold;
   color: var(--accent);
+  -webkit-app-region: no-drag;
 }
 
 .version {
   color: var(--text-light);
   font-size: 12px;
+  -webkit-app-region: no-drag;
 }
 
 /* 选择内容区域 */
