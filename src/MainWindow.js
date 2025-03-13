@@ -40,6 +40,7 @@ class MainWindow {
         await app.whenReady();
 
         this.window = new BrowserWindow({
+            frame: false,
             width: 1400,
             height: 1000,
             webPreferences: {

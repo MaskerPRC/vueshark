@@ -85,15 +85,44 @@
             <div class="response-label">RESPONSE</div>
           </div>
 
-          <!-- 详情视图 -->
+          <!-- 详情视图 - 改为左右分栏 -->
           <div class="detail-content">
-            <div class="tree-view">
-              <TreeItem
-                v-for="(layer, index) in selectedPacket.layers"
-                :key="index"
-                :layer="layer"
-                @field-select="onFieldSelect"
-              />
+            <!-- 左侧：树形结构 -->
+            <div class="detail-left">
+              <div class="tree-view">
+                <TreeItem
+                  v-for="(layer, index) in selectedPacket.layers"
+                  :key="index"
+                  :layer="layer"
+                  @field-select="onFieldSelect"
+                />
+              </div>
+            </div>
+            
+            <!-- 右侧：字段解释 -->
+            <div class="detail-right">
+              <template v-if="selectedField">
+                <div class="field-info">
+                  <div class="field-info-header">字段信息</div>
+                  <div class="field-info-content">
+                    <div class="field-info-item">
+                      <div class="field-info-label">字段名称</div>
+                      <div class="field-info-value">{{ selectedField.name }}</div>
+                    </div>
+                    <div class="field-info-item">
+                      <div class="field-info-label">当前值</div>
+                      <div class="field-info-value">{{ selectedField.value }}</div>
+                    </div>
+                    <div class="field-info-item">
+                      <div class="field-info-label">描述</div>
+                      <div class="field-info-value">{{ selectedField.description || '暂无描述' }}</div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+              <div v-else class="no-field-selected">
+                请选择左侧字段查看详细信息
+              </div>
             </div>
           </div>
         </div>
@@ -489,8 +518,22 @@ export default {
 /* 详情内容 */
 .detail-content {
   flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.detail-left {
+  width: 60%;
   overflow: auto;
   padding: 15px;
+  border-right: 1px solid var(--border-color);
+}
+
+.detail-right {
+  width: 40%;
+  overflow: auto;
+  padding: 15px;
+  background-color: var(--bg-darker);
 }
 
 .tree-view {
@@ -499,21 +542,71 @@ export default {
   line-height: 1.5;
 }
 
+.field-info {
+  color: var(--text-light);
+}
+
+.field-info-header {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: var(--accent);
+}
+
+.field-info-content {
+  background-color: var(--bg-dark);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.field-info-item {
+  padding: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.field-info-item:last-child {
+  border-bottom: none;
+}
+
+.field-info-label {
+  font-size: 12px;
+  color: var(--text-light);
+  opacity: 0.7;
+  margin-bottom: 4px;
+}
+
+.field-info-value {
+  font-size: 14px;
+  color: var(--text-light);
+  word-break: break-all;
+}
+
+.no-field-selected {
+  color: var(--text-light);
+  opacity: 0.5;
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+}
+
 /* 滚动条样式 */
 .packet-table::-webkit-scrollbar,
-.detail-content::-webkit-scrollbar {
+.detail-left::-webkit-scrollbar,
+.detail-right::-webkit-scrollbar {
   width: 8px;
   background-color: var(--bg-darker);
 }
 
 .packet-table::-webkit-scrollbar-thumb,
-.detail-content::-webkit-scrollbar-thumb {
+.detail-left::-webkit-scrollbar-thumb,
+.detail-right::-webkit-scrollbar-thumb {
   background-color: var(--border-color);
   border-radius: 4px;
 }
 
 .packet-table::-webkit-scrollbar-thumb:hover,
-.detail-content::-webkit-scrollbar-thumb:hover {
+.detail-left::-webkit-scrollbar-thumb:hover,
+.detail-right::-webkit-scrollbar-thumb:hover {
   background-color: var(--accent);
 }
 
@@ -526,6 +619,20 @@ export default {
   .panel-title {
     width: 100%;
     margin-bottom: 10px;
+  }
+
+  .detail-content {
+    flex-direction: column;
+  }
+  
+  .detail-left,
+  .detail-right {
+    width: 100%;
+  }
+  
+  .detail-left {
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
   }
 }
 </style>
