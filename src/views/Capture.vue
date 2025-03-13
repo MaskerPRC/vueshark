@@ -228,6 +228,9 @@ export default {
       this.startY = e.clientY;
       this.startHeight = this.detailsPanelHeight;
       
+      // 添加禁用文本选择的类
+      document.body.classList.add('resizing');
+      
       document.addEventListener('mousemove', this.handleResizing);
       document.addEventListener('mouseup', this.stopResizing);
     },
@@ -242,6 +245,10 @@ export default {
     
     stopResizing() {
       this.isResizing = false;
+      
+      // 移除禁用文本选择的类
+      document.body.classList.remove('resizing');
+      
       document.removeEventListener('mousemove', this.handleResizing);
       document.removeEventListener('mouseup', this.stopResizing);
     },
@@ -249,6 +256,9 @@ export default {
       this.isHorizontalResizing = true;
       this.startX = e.clientX;
       this.startWidth = this.detailLeftWidth;
+      
+      // 添加禁用文本选择的类
+      document.body.classList.add('resizing');
       
       document.addEventListener('mousemove', this.handleHorizontalResizing);
       document.addEventListener('mouseup', this.stopHorizontalResizing);
@@ -268,6 +278,10 @@ export default {
     
     stopHorizontalResizing() {
       this.isHorizontalResizing = false;
+      
+      // 移除禁用文本选择的类
+      document.body.classList.remove('resizing');
+      
       document.removeEventListener('mousemove', this.handleHorizontalResizing);
       document.removeEventListener('mouseup', this.stopHorizontalResizing);
     }
@@ -734,5 +748,23 @@ export default {
 
 .vertical-resizer:hover {
   background-color: var(--accent);
+}
+
+/* 禁用文本选择 */
+:global(.resizing) {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  cursor: inherit !important;
+}
+
+/* 分隔符默认禁用文本选择 */
+.resizer,
+.vertical-resizer {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 </style>
